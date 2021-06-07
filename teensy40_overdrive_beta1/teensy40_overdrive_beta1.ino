@@ -459,24 +459,6 @@ void onSignalChanged1(void)
 {
   /* RECV_CH1 */
   high_low[RECV_CH1] = readPulse(RECV_CH1);
-  if (high_low[RECV_CH1] == LOW) {
-    /* FORCE RECEVER MODE THRESHOLD CHECK. IF PULSE IS OUT OF RANGE, THEN SWITCH TO FORCE RECEVER MODE. */
-    if (input_pulse_length[RECV_CH1] < STEERING_PULSE_LENGTH_MIN_THRESHOLD ||
-        STEERING_PULSE_LENGTH_MAX_THRESHOLD < input_pulse_length[RECV_CH1]) {
-      status[ST_MANUAL_STEERING] = FORCE;
-      micros_last[FORCE_TIME] = micros();
-    } else {
-      micros_ch1 = micros();
-      if (micros_ch1 - micros_last[FORCE_TIME] >= 1000000 && micros_ch1 > micros_last[FORCE_TIME]) { // more than 1 sec
-        status[ST_MANUAL_STEERING] = !FORCE;
-      }
-    }
-    if (status[ST_MANUAL_STEERING] || status[ST_MANUAL_THROTTLE]) {
-      status[ST_FORCE_RECEIVER] = FORCE;
-    } else {
-      status[ST_FORCE_RECEIVER] = !FORCE;
-    }
-  }
 
   /* if ST_MODE == RECEIVER or FORCE_RECEIVER */
   if (status[ST_MODE] == RECEIVER || status[ST_FORCE_RECEIVER] == FORCE) {
@@ -488,24 +470,7 @@ void onSignalChanged2(void)
 {
   /* RECV_CH2 */
   high_low[RECV_CH2] = readPulse(RECV_CH2);
-  if (high_low[RECV_CH2] == LOW) {
-    /* FORCE RECEVER MODE THRESHOLD CHECK. IF PULSE IS OUT OF RANGE, THEN SWITCH TO FORCE RECEVER MODE. */
-    if (input_pulse_length[RECV_CH2] < THROTTLE_PULSE_LENGTH_MIN_THRESHOLD ||
-        THROTTLE_PULSE_LENGTH_MAX_THRESHOLD < input_pulse_length[RECV_CH2]) {
-      status[ST_MANUAL_THROTTLE] = FORCE;
-      micros_last[FORCE_TIME] = micros();
-    } else {
-      micros_ch2 = micros();
-      if (micros_ch2 - micros_last[FORCE_TIME] >= 1000000 && micros_ch2 > micros_last[FORCE_TIME]) { // more than 1 sec
-        status[ST_MANUAL_THROTTLE] = !FORCE;
-      }
-    }
-    if (status[ST_MANUAL_THROTTLE] || status[ST_MANUAL_STEERING]) {
-      status[ST_FORCE_RECEIVER] = FORCE;
-    } else {
-      status[ST_FORCE_RECEIVER] = !FORCE;
-    }
-  }
+
 
 #if USE_RECV_CUTOFF
   /* add the micros outside the cutoff range */
