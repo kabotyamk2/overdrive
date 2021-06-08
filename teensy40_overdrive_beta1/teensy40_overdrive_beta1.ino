@@ -363,15 +363,17 @@ void pca9685_emulator_ch1_thread() {
   }
 #else
   while(1) {
-    pulse_ch1 = pwmEmulation.readChannelUs(OUTPUT_CH1); // TODO: need to check the reading time
-    if (600 <= pulse_ch1 && pulse_ch1 <= 2600) {
-        micros_last[PCA9685_CH1] = micros();
-        input_pulse_length[PCA9685_CH1] = pulse_ch1;
-        digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], HIGH);
+    if (status[ST_MODE] == PCA9685){
+      pulse_ch1 = pwmEmulation.readChannelUs(OUTPUT_CH1); // TODO: need to check the reading time
+      if (600 <= pulse_ch1 && pulse_ch1 <= 2600) {
+          micros_last[PCA9685_CH1] = micros();
+          input_pulse_length[PCA9685_CH1] = pulse_ch1;
+          digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], HIGH);
+      }
+      delayMicroseconds(pulse_ch1);
+      digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], LOW);
+      delayMicroseconds(PCA9685_INTERVAL - pulse_ch1);
     }
-    delayMicroseconds(pulse_ch1);
-    digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], LOW);
-    delayMicroseconds(PCA9685_INTERVAL - pulse_ch1);
   }
 #endif
 }
@@ -396,19 +398,21 @@ void pca9685_emulator_ch2_thread() {
   }
 #else
   while(1) {
-    pulse_ch2 = pwmEmulation.readChannelUs(OUTPUT_CH2);
-    if (600 <= pulse_ch2 && pulse_ch2 <= 2600) {
-        micros_last[PCA9685_CH2] = micros();
-        input_pulse_length[PCA9685_CH2] = pulse_ch2;
-        digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], HIGH);
+    if(status[ST_MODE] == PCA9685){
+      pulse_ch2 = pwmEmulation.readChannelUs(OUTPUT_CH2);
+      if (600 <= pulse_ch2 && pulse_ch2 <= 2600) {
+          micros_last[PCA9685_CH2] = micros();
+          input_pulse_length[PCA9685_CH2] = pulse_ch2;
+          digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], HIGH);
+      }
+      delayMicroseconds(pulse_ch2);
+      digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], LOW);
+      delayMicroseconds(PCA9685_INTERVAL - pulse_ch2);
     }
-    delayMicroseconds(pulse_ch2);
-    digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], LOW);
-    delayMicroseconds(PCA9685_INTERVAL - pulse_ch2);
   }
 #endif
 }
-
+#endif
 
 
 
@@ -513,6 +517,10 @@ void onSignalChanged1(void)
   if (status[ST_MODE] == RECEIVER || status[ST_FORCE_RECEIVER] == FORCE) {
     digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], high_low[RECV_CH1]);
   }
+#else
+  if (status[ST_MODE] == RECEIVER) {
+    digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], high_low[RECV_CH1]);
+  }
 #endif
 }
 
@@ -549,6 +557,27 @@ void onSignalChanged2(void)
 #if !USE_ALWAYS_PCA9685_OUTPUT
   /* if ST_MODE == RECEIVER or FORCE_RECEIVER */
   if (status[ST_MODE] == RECEIVER || status[ST_FORCE_RECEIVER] == FORCE) {
+#if !USE_RECV_CUTOFF
+    digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], high_low[RECV_CH2]);
+#else
+    if (micros() - micros_last[RECV_CH2_CUTOFF_TIME] <= micros_cutoff) {
+      /* write pulse if it is not cutoff range and cutoff time */
+      digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], high_low[RECV_CH2]);
+      if (status[ST_CUTOFF] == DEAD) {
+        status[ST_CUTOFF] = ALIVE;
+      }
+    } else {
+      /* write no signal */
+      digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], LOW);
+      if (status[ST_CUTOFF] == ALIVE) {
+        status[ST_CUTOFF] = DEAD;
+      }
+    }
+#endif
+  }
+#else
+ /* if ST_MODE == RECEIVER or FORCE_RECEIVER */
+  if (status[ST_MODE] == RECEIVER) {
 #if !USE_RECV_CUTOFF
     digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], high_low[RECV_CH2]);
 #else
@@ -626,7 +655,10 @@ void onSignalChanged5(void)
     digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], high_low[PCA9685_CH1]);
   }
 #else
-  digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], high_low[PCA9685_CH1]);
+  if (status[ST_MODE] == PCA9685 && status[ST_PING] == ALIVE) {
+    /* if ST_MODE == PCA9685 and SYSTEM is alive and not FORCE_RECEIVER */
+    digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], high_low[PCA9685_CH1]);
+  }
 #endif
 }
 
@@ -640,7 +672,10 @@ void onSignalChanged6(void)
     digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], high_low[PCA9685_CH2]);
   }
 #else
-  digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], high_low[PCA9685_CH2]);
+  if (status[ST_MODE] == PCA9685 && status[ST_PING] == ALIVE) {
+    /* if ST_MODE == PCA9685 and SYSTEM is alive and not FORCE_RECEIVER */
+    digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], high_low[PCA9685_CH2]);
+  }
 #endif
 }
 
