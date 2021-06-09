@@ -86,7 +86,7 @@ const int RECV_CH2_PULSE_LENGTH_MAX     = 2000; // maximum throttle brake value
 #define USE_PCA9685_EMULATOR 1 // 1: use PCA9685 emulator. 0: use PCA9685 board and P1/P2 pins.
 #define USE_3CH_TARNSMITTER 0  // 0: use 4 channel transmitter.(Futaba 7PX/4PM etc.) 1: use 3 channel transmitter.(Tamiya TTU-08 etc.)
 #define USE_RECV_CUTOFF 0      // 0: For receivers that turn the signal off when the transmitter is off, like the R334SBS-E. 1: For receivers that send a neutral signal when the transmitter is off
-#define USE_ALWAYS_PCA9685_OUTPUT 1 // 0: Enable OVERDRIVE. 1: Disable OVERDRIVE. If 1, you can ignore the PWM signal adjustment. It also loses the means to stop in the event of a runaway. Due to a request, I have implemented this Destruction God flag. Normally use 0.
+#define FORCE_MODE_DEPENDENCE 1 // 0: Enable OVERDRIVE. 1: Disable OVERDRIVE. If 1, you can ignore the PWM signal adjustment. It also loses the means to stop in the event of a runaway. Due to a request, I have implemented this Destruction God flag. Normally use 0.
 
 /*
  * Neutral pulse noize cancel
@@ -345,7 +345,7 @@ PCA9685Emulator pwmEmulation;
 
 void pca9685_emulator_ch1_thread() {
   uint16_t pulse_ch1 = 0;
-#if !USE_ALWAYS_PCA9685_OUTPUT
+#if !FORCE_MODE_DEPENDENCE
   while(1) {
     if (status[ST_MODE] == PCA9685 && status[ST_PING] == ALIVE && status[ST_FORCE_RECEIVER] != FORCE) {
       pulse_ch1 = pwmEmulation.readChannelUs(OUTPUT_CH1); // TODO: need to check the reading time
@@ -380,7 +380,7 @@ void pca9685_emulator_ch1_thread() {
 
 void pca9685_emulator_ch2_thread() {
   uint16_t pulse_ch2 = 0;
-#if !USE_ALWAYS_PCA9685_OUTPUT
+#if !FORCE_MODE_DEPENDENCE
   while(1) {
     if (status[ST_MODE] == PCA9685 && status[ST_PING] == ALIVE && status[ST_FORCE_RECEIVER] != FORCE) {
       pulse_ch2 = pwmEmulation.readChannelUs(OUTPUT_CH2);
@@ -512,7 +512,7 @@ void onSignalChanged1(void)
     }
   }
 
-#if !USE_ALWAYS_PCA9685_OUTPUT
+#if !FORCE_MODE_DEPENDENCE
   /* if ST_MODE == RECEIVER or FORCE_RECEIVER */
   if (status[ST_MODE] == RECEIVER || status[ST_FORCE_RECEIVER] == FORCE) {
     digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], high_low[RECV_CH1]);
@@ -554,7 +554,7 @@ void onSignalChanged2(void)
   }
 #endif
 
-#if !USE_ALWAYS_PCA9685_OUTPUT
+#if !FORCE_MODE_DEPENDENCE
   /* if ST_MODE == RECEIVER or FORCE_RECEIVER */
   if (status[ST_MODE] == RECEIVER || status[ST_FORCE_RECEIVER] == FORCE) {
 #if !USE_RECV_CUTOFF
@@ -649,7 +649,7 @@ void onSignalChanged5(void)
 {
   /* PCA9685_CH1 */
   high_low[PCA9685_CH1] = readPulse(PCA9685_CH1);
-#if !USE_ALWAYS_PCA9685_OUTPUT
+#if !FORCE_MODE_DEPENDENCE
   if (status[ST_MODE] == PCA9685 && status[ST_PING] == ALIVE && status[ST_FORCE_RECEIVER] != FORCE) {
     /* if ST_MODE == PCA9685 and SYSTEM is alive and not FORCE_RECEIVER */
     digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH1], high_low[PCA9685_CH1]);
@@ -666,7 +666,7 @@ void onSignalChanged6(void)
 {
   /* PCA9685_CH2 */
   high_low[PCA9685_CH2] = readPulse(PCA9685_CH2);
-#if !USE_ALWAYS_PCA9685_OUTPUT
+#if !FORCE_MODE_DEPENDENCE
   if (status[ST_MODE] == PCA9685 && status[ST_PING] == ALIVE && status[ST_FORCE_RECEIVER] != FORCE) {
     /* if ST_MODE == PCA9685 and SYSTEM is alive and not FORCE_RECEIVER */
     digitalWriteFast(PWM_OUTPUT_PIN[OUTPUT_CH2], high_low[PCA9685_CH2]);
